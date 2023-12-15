@@ -21,7 +21,7 @@ import copy
 
 ######################################################################
 from model import *
-from utils import *
+import utils
 from network import *
 
 
@@ -29,7 +29,7 @@ from network import *
 ######################################################################
 # Parameters
 # ---------
-path = '~/Projects/Project_SEM/Project_TargetClass/data'
+path = '../scripts-preprocessing/'
 # Batch size
 bs = 32
 # Image size
@@ -38,8 +38,9 @@ sz = 224
 lr1 = 1e-3
 lr2 = 1e-3
 # Number Epochs
-nb_epochs1 = 1 #25
-nb_epochs2 = 1 #25
+nb_epochs1 = 10 #25
+nb_epochs2 = 10 #25
+class_names = ['Class1', 'Class2', 'Class3', 'Class4']
 
 # --------
 # Device for CUDA (pytorch 0.4.0)
@@ -80,23 +81,40 @@ def main():
 
 
 	# ---------
-	data_dir = path
-	image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
-											  data_transforms[x])
-					  for x in ['train', 'val']}
-	dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=bs,
-												 shuffle=True, num_workers=4)
-				  for x in ['train', 'val']}
-	dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-	class_names = image_datasets['train'].classes
-	print(class_names)
+	# data_dir = path
+	# image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
+	# 										  data_transforms[x])
+	# 				  for x in ['train', 'val']}
+	# dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=bs,
+	# 											 shuffle=True, num_workers=4)
+	# 			  for x in ['train', 'val']}
+	# dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+	#class_names = image_datasets['train'].classes
+	#print(class_names)
 
+
+	# ---------
+	data_dict = {}
+	dataloaders_dict = {}	
+
+	for x in ['train', 'val']:
+		since = time.time()
+		data_list = os.path.join( path, (x + '_all.csv'))
+		print(data_list)
+		data = utils.load_data(data_list, data_transforms[x])
+
+		data_dict[x] = data
+		dataloaders_dict[x] = torch.utils.data.DataLoader(data_dict[x], batch_size=bs, shuffle=True, num_workers=4)
+
+		time_elapsed = time.time() - since
+		print('--- Finish loading ' + x + ' data in {:.0f}m {:.0f}s---'.format(time_elapsed // 60, time_elapsed % 60))
+		
 
 	# ----------------------
 	# Visualize input data
 
 	# Get a batch of training data
-	#inputs, classes = next(iter(dataloaders['train']))
+	#inputs, classes = next(iter(dataloaders_dict['train']))
 	#print(inputs)
 	#print(classes)
 	#print(inputs.type())
@@ -104,7 +122,7 @@ def main():
 	# Make a grid from batch
 	#out = torchvision.utils.make_grid(inputs)
 
-	#imshow(out, title=[class_names[x] for x in classes])
+	#utils.imshow(out, title=[class_names[x] for x in classes])
 
 
 	######################################################################
@@ -126,11 +144,11 @@ def main():
 	print("Transfer learning - Step1...")
 	
 	TransferLearningStep = "Step1"
-	model_ft.train_model(TransferLearningStep, dataloaders=dataloaders, lr=lr1, nb_epochs=nb_epochs1)
+	model_ft.train_model(TransferLearningStep, dataloaders=dataloaders_dict, lr=lr1, nb_epochs=nb_epochs1)
 	
 	# ----------------------
 	# Evaluate on validation data
-	model_ft.test_model(dataloaders, class_names)
+	model_ft.test_model(dataloaders_dict, class_names)
 	
 	
 	######################################################################
@@ -145,16 +163,16 @@ def main():
 	print("Fine tuning...")
 	
 	TransferLearningStep = "Step2"
-	model_ft.train_model(TransferLearningStep, dataloaders=dataloaders, lr=lr2, nb_epochs=nb_epochs2)
+	model_ft.train_model(TransferLearningStep, dataloaders=dataloaders_dict, lr=lr2, nb_epochs=nb_epochs2)
 	
 	
 	# ----------------------
 	# Evaluate on validation data
-	model_ft.test_model(dataloaders, class_names)
+	model_ft.test_model(dataloaders_dict, class_names)
 	
 	# ----------------------
 	# Display predicted images
-	#visualize_model(model_ft, dataloaders, class_names)
+	#visualize_model(model_ft, dataloaders_dict, class_names)
 
 	plt.ioff()
 	plt.show()

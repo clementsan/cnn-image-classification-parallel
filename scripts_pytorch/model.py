@@ -95,8 +95,11 @@ class Model(object):
 				running_corrects = 0
 
 				# Iterate over data.
-				for inputs, labels in dataloaders[phase]:
-					inputs = inputs.to(self.device)
+				for inputs1, inputs2, inputs3, inputs4, labels in dataloaders[phase]:
+					inputs1 = inputs1.to(self.device)
+					inputs2 = inputs2.to(self.device)
+					inputs3 = inputs3.to(self.device)
+					inputs4 = inputs4.to(self.device)
 					labels = labels.to(self.device)
 
 					# zero the parameter gradients
@@ -106,7 +109,7 @@ class Model(object):
 					# track history if only in train
 					with torch.set_grad_enabled(phase == 'train'):
 						# Provide two inputs to model
-						outputs = self.model(inputs, inputs)
+						outputs = self.model(inputs1, inputs2, inputs3, inputs4)
 						_, preds = torch.max(outputs, 1)
 						loss = self.criterion(outputs, labels)
 
@@ -116,7 +119,7 @@ class Model(object):
 							optimizer.step()
 
 					# statistics
-					running_loss += loss.item() * inputs.size(0)
+					running_loss += loss.item() * inputs1.size(0)
 					running_corrects += torch.sum(preds == labels.data)
 
 				epoch_loss = running_loss / len(dataloaders[phase].dataset) 
@@ -153,19 +156,23 @@ class Model(object):
 		fig = plt.figure()
 
 		with torch.no_grad():
-			for i, (inputs, labels) in enumerate(dataloaders['val']):
-				inputs = inputs.to(self.device)
+			for i, (inputs1, inputs2, inputs3, inputs4, labels) in enumerate(dataloaders['val']):
+				inputs1 = inputs1.to(self.device)
+				inputs2 = inputs2.to(self.device)
+				inputs3 = inputs3.to(self.device)
+				inputs4 = inputs4.to(self.device)
 				labels = labels.to(self.device)
 
-				outputs = self.model(inputs, inputs)
+
+				outputs = self.model(inputs1, inputs2, inputs3, inputs4)
 				_, preds = torch.max(outputs, 1)
 
-				for j in range(inputs.size()[0]):
+				for j in range(inputs1.size()[0]):
 					images_so_far += 1
 					ax = plt.subplot(num_images//2, 2, images_so_far)
 					ax.axis('off')
 					ax.set_title('predicted: {}'.format(class_names[preds[j]]))
-					imshow(inputs.cpu().data[j])
+					imshow(inputs1.cpu().data[j])
 
 					if images_so_far == num_images:
 						self.model.train(mode=was_training)
@@ -174,7 +181,7 @@ class Model(object):
 
 
 	def test_model(self, dataloaders, class_names):
-		print("Prediction on validation data")
+		print("\nPrediction on validation data")
 		was_training = self.model.training
 		self.model.eval()
 		#self.model.load_state_dict(torch.load('pytorch_model.h5'))
@@ -182,12 +189,15 @@ class Model(object):
 		total_labels = []
 		total_preds = []
 		with torch.no_grad():
-			for i, (inputs, labels) in enumerate(dataloaders['val']):
+			for i, (inputs1, inputs2, inputs3, inputs4, labels) in enumerate(dataloaders['val']):
 				#print("DataLoader iteration: %d" % i)
-				inputs = inputs.to(self.device)
+				inputs1 = inputs1.to(self.device)
+				inputs2 = inputs2.to(self.device)
+				inputs3 = inputs3.to(self.device)
+				inputs4 = inputs4.to(self.device)
 				labels = labels.to(self.device)
 
-				outputs = self.model(inputs, inputs)
+				outputs = self.model(inputs1, inputs2, inputs3, inputs4)
 				_, preds = torch.max(outputs, 1)
 				#print("\t Predictions: %s" % preds.data.cpu().numpy())
 				#print("\t Labels: %s" % labels.data.cpu().numpy())
