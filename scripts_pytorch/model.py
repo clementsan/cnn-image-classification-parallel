@@ -27,28 +27,16 @@ class Model(object):
 
 	def create_model(self):
 		
-		# Use ResNet50 model
-		#self.model = models.resnet50(pretrained=True)
-		#networkA_res50 = models.resnet50(pretrained=True)
-		#networkB_res50 = models.resnet50(pretrained=True)
-		#networkA_res50_conv = MyNetworkA(networkA_res50)
-		#networkB_res50_conv = MyNetworkB(networkB_res50)
-		#self.model = MyEnsemble(networkA_res50_conv,networkB_res50_conv)
+
+		# Combined resNets with one final layer
+		#self.model = MyNetwork1()
+		# More advanced network (hidden layers and dropout)
+		self.model = MyNetwork2()
 		#print(self.model)
 
-		self.model = MyNetwork()
-		#print(self.model)
-
-		# Freeze layers
-		for param in self.model.parameters():
-			#print(param)
-			param.requires_grad = False
-		# Unfreeze layers for classifier
-		for param in self.model.classifier.parameters():	
-			param.requires_grad = True
-		
 		# Attach to device
 		self.model = self.model.to(self.device)
+		
 
 
 	# Need to udpate: step1 vs step2
@@ -57,13 +45,41 @@ class Model(object):
 
 		# Update optimizer and schredule based on transferLearningStep
 		if (TransferLearningStep == "Step1"):
-			optimizer = optim.SGD(self.model.classifier.parameters(), lr=lr, momentum=0.9)
+
+			# Update for Network2
+			params_to_update = []
+			#search = ['fc','network1.fc','network2.fc','network3.fc','network4.fc']
+			search = ['fc']
+			for name, param in self.model.named_parameters():
+				#print(name)
+				if any(x in name for x in search):
+				#if 'fc' in name:
+					print("\tUpdate grad: %s" % name)
+					param.requires_grad = True
+					params_to_update.append(param)
+				else:
+					param.requires_grad = False
+
+			self.params_to_update = params_to_update
+
+			#Udpates for simpler network1 (one fc1 layer)
+			#Freeze layers
+			# for name, param in self.model.named_parameters():
+			# 	print(name)
+			# 	param.requires_grad = False
+			# # Unfreeze layers for fc1
+			# for name, param in self.model.fc1.named_parameters():
+			# 	print (name)
+			# 	param.requires_grad = True
+
+			#optimizer = optim.SGD(self.model.fc1.parameters(), lr=lr, momentum=0.9)
+			optimizer = optim.SGD([{'params': self.params_to_update}], lr=lr, momentum=0.9)
 
 			# Decay LR by a factor of 0.1 every 7 epochs
 			scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
 		elif (TransferLearningStep == "Step2"):
-			# Unfreeze layers
+			# Unfreeze all layers
 			for param in self.model.parameters():
 				param.requires_grad = True
 
