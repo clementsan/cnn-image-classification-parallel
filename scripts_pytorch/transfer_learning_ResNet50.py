@@ -104,7 +104,7 @@ def main():
 		data = utils.load_data(data_list, data_transforms[x])
 
 		data_dict[x] = data
-		dataloaders_dict[x] = torch.utils.data.DataLoader(data_dict[x], batch_size=bs, shuffle=True, num_workers=4)
+		dataloaders_dict[x] = torch.utils.data.DataLoader(data_dict[x], batch_size=bs, shuffle=True, num_workers=1)
 
 		time_elapsed = time.time() - since
 		print('--- Finish loading ' + x + ' data in {:.0f}m {:.0f}s---'.format(time_elapsed // 60, time_elapsed % 60))
@@ -169,7 +169,8 @@ def main():
 	# ----------------------
 	# Evaluate on validation data
 	model_ft.test_model(dataloaders_dict, class_names)
-	
+
+
 	# ----------------------
 	# Display predicted images
 	#visualize_model(model_ft, dataloaders_dict, class_names)
