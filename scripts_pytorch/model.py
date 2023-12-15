@@ -12,6 +12,8 @@ import sys
 import os
 import copy
 import time
+import matplotlib.pyplot as plt
+#from torchsummmary import summary
 
 from sklearn.metrics import confusion_matrix
 from layers import *
@@ -31,9 +33,10 @@ class Model(object):
 		# Combined resNets with one final layer
 		#self.model = MyNetwork1()
 		# More advanced network (hidden layers and dropout)
-		self.model = MyNetwork2()
-		#print(self.model)
-
+		self.model = MyNetworkFastAI2()
+		print(self.model)
+		#print(summary(self.model, (2,224,224)))
+		
 		# Attach to device
 		self.model = self.model.to(self.device)
 		
@@ -95,6 +98,11 @@ class Model(object):
 		best_model_wts = copy.deepcopy(self.model.state_dict())
 		best_acc = 0.0
 
+		train_loss = []
+		val_loss = []
+		train_acc = []
+		val_acc = []
+
 		for epoch in range(nb_epochs):
 			print('Epoch {}/{}'.format(epoch, nb_epochs - 1))
 			print('-' * 10)
@@ -146,6 +154,15 @@ class Model(object):
 				print('{} Loss: {:.4f} Acc: {:.4f} Lr: {:.6f}'.format(
 					phase, epoch_loss, epoch_acc, curr_lr))
 
+
+				# Append values for plots
+				if phase == 'train':
+					train_loss.append(epoch_loss)
+					train_acc.append(epoch_acc)
+				else:
+					val_loss.append(epoch_loss)
+					val_acc.append(epoch_acc)
+
 				# deep copy the model
 				if phase == 'val' and epoch_acc > best_acc:
 					best_acc = epoch_acc
@@ -157,6 +174,15 @@ class Model(object):
 		print('Training complete in {:.0f}m {:.0f}s'.format(
 			time_elapsed // 60, time_elapsed % 60))
 		print('Best val Acc: {:4f}'.format(best_acc))
+
+		# Generate plots
+		plt.figure(); plt.plot(range(1,nb_epochs+1),train_loss,'k', range(1,nb_epochs+1), val_loss, 'r')
+		plt.legend(['Train Loss','Val Loss'])
+		plt.savefig(os.getcwd()+ '/loss_' + TransferLearningStep + '.png')
+
+		plt.figure(); plt.plot(range(1,nb_epochs+1),train_acc,'k', range(1,nb_epochs+1), val_acc, 'r')
+		plt.legend(['Train Accuracy','Val Accuracy'])
+		plt.savefig(os.getcwd()+ '/acc_' + TransferLearningStep + '.png')
 
 		# load best model weights
 		self.model.load_state_dict(best_model_wts)
