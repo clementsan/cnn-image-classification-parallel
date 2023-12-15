@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+"""
+2-step transfer learning
+
+"""
+
 
 from __future__ import print_function, division
 
@@ -13,62 +18,44 @@ import torchvision
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
 import time
+import sys
 import os
 import copy
 
-
-# ----
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-# ----
-
-
-
-plt.ion()   # interactive mode
+#from torchsummary import summary
+from sklearn.metrics import confusion_matrix
 
 ######################################################################
-# Load Data
+#from os import path
+#sys.path.append( path.dirname( path.abspath(__file__) ) )
+#from .layers import *
+from layers import *
+
+######################################################################
+# Parameters
 # ---------
-
-# Data augmentation and normalization for training
-# Just normalization for validation
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.RandomResizedCrop(224),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
-
-
-
-##############
-# Define parameters
 path = '~/Projects/Project_SEM/Project_TargetClass/data'
+# Batch size
+bs = 32
+# Image size
+sz = 224
+# Learning rate
+lr1 = 1e-3
+lr2 = 1e-3
+# Number Epochs
+nb_epochs1 = 25
+nb_epochs2 = 25
 
-
-##############
-
-data_dir = path
-image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
-                                          data_transforms[x])
-                  for x in ['train', 'val']}
-dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
-                                             shuffle=True, num_workers=4)
-              for x in ['train', 'val']}
-dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-class_names = image_datasets['train'].classes
-
+# --------
+# Device for CUDA (pytorch 0.4.0)
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
 
 ######################################################################
 # Visualize a few images
+
 
 def imshow(inp, title=None):
     """Imshow for Tensor."""
@@ -83,21 +70,14 @@ def imshow(inp, title=None):
     plt.pause(0.001)  # pause a bit so that plots are updated
 
 
-# Get a batch of training data
-inputs, classes = next(iter(dataloaders['train']))
-
-# Make a grid from batch
-out = torchvision.utils.make_grid(inputs)
-
-imshow(out, title=[class_names[x] for x in classes])
-
 
 ######################################################################
-# Training model
+# Training the model
 # ------------------
 
 
-def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
+
+def train_model(model, dataloaders, dataset_sizes, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -166,10 +146,10 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
 
 ######################################################################
-# Visualizing model predictions
+# Visualizing the model predictions
 
 
-def visualize_model(model, num_images=6):
+def visualize_model(model, dataloaders, class_names, num_images=6):
     was_training = model.training
     model.eval()
     images_so_far = 0
@@ -196,82 +176,188 @@ def visualize_model(model, num_images=6):
         model.train(mode=was_training)
 
 ######################################################################
-# Finetuning the convnet
-# Load a pretrained model and reset final fully connected layer.
-#
-# ----------------------
+# Testing model predictions
 
-model_ft = models.resnet50(pretrained=True)
-num_ftrs = model_ft.fc.in_features
-model_ft.fc = nn.Linear(num_ftrs, 2)
+def test_model(model, dataloaders, class_names):
+    print("prediction on validation data")
+    model.load_state_dict(torch.load('pytorch_model.h5'))
+    model.eval()
+    total_labels = []
+    total_preds = []
+    with torch.no_grad():
+        for i, (inputs, labels) in enumerate(dataloaders['val']):
+            #print("DataLoader iteration: %d" % i)
+            inputs = inputs.to(device)
+            labels = labels.to(device)
 
-model_ft = model_ft.to(device)
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            #print("\t Predictions: %s" % preds.data.cpu().numpy())
+            #print("\t Labels: %s" % labels.data.cpu().numpy())
+            total_labels.extend(labels.data.cpu().numpy())
+            total_preds.extend(preds.data.cpu().numpy())
 
-criterion = nn.CrossEntropyLoss()
-
-# Observe that all parameters are being optimized
-optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
-
-# Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
-
-
-######################################################################
-# Train and evaluate
-
-
-model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
-                       num_epochs=25)
+    print(class_names)
+    cm = confusion_matrix(total_labels,total_preds)
+    print(cm)
 
 ######################################################################
-# 
+# Main function
 
-visualize_model(model_ft)
-
-
-######################################################################
-# ConvNet as fixed feature extractor
-# ----------------------------------
-#
-# Here, we need to freeze all the network except the final layer. We need
-# to set ``requires_grad == False`` to freeze the parameters so that the
-# gradients are not computed in ``backward()``.
-#
-# You can read more about this in the documentation
-# `here <http://pytorch.org/docs/notes/autograd.html#excluding-subgraphs-from-backward>`__.
-#
-
-model_conv = torchvision.models.resnet50(pretrained=True)
-for param in model_conv.parameters():
-    param.requires_grad = False
-
-# Parameters of newly constructed modules have requires_grad=True by default
-num_ftrs = model_conv.fc.in_features
-model_conv.fc = nn.Linear(num_ftrs, 2)
-
-model_conv = model_conv.to(device)
-
-criterion = nn.CrossEntropyLoss()
-
-# Observe that only parameters of final layer are being optimized as
-# opoosed to before.
-optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
-
-# Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
+def main():
 
 
-######################################################################
-# Train and evaluate
+    plt.ion()   # interactive mode
+
+    ######################################################################
+    # Load Data
+    # ---------
+
+    # Data augmentation and normalization for training
+    # Just normalization for validation
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.RandomRotation(5),
+            transforms.ColorJitter(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomResizedCrop(sz),
+            transforms.ToTensor(),
+            normalize
+        ]),
+        'val': transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(sz),
+            transforms.ToTensor(),
+            normalize
+        ]),
+    }
 
 
-model_conv = train_model(model_conv, criterion, optimizer_conv,
-#                         exp_lr_scheduler, num_epochs=25)
+    # ---------
+    data_dir = path
+    image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
+                                              data_transforms[x])
+                      for x in ['train', 'val']}
+    dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=bs,
+                                                 shuffle=True, num_workers=4)
+                  for x in ['train', 'val']}
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+    class_names = image_datasets['train'].classes
 
-######################################################################
-#
+    # Get a batch of training data
+    inputs, classes = next(iter(dataloaders['train']))
 
-#visualize_model(model_conv)
+    # Make a grid from batch
+    out = torchvision.utils.make_grid(inputs)
 
-plt.ioff()
-plt.show()
+    #imshow(out, title=[class_names[x] for x in classes])
+
+
+    ######################################################################
+    # Transfer learning - step 1: fixed features 
+    # ----------------------
+    #
+    # Load a pretrained model and reset final fully connected layer.
+    #
+
+    # Use ResNet50 model
+    model_ft = models.resnet50(pretrained=True)
+
+    # Freeze layers
+    for param in model_ft.parameters():
+        param.requires_grad = False
+
+    # ------------
+    # Update model
+    # Single linear features
+    num_ftrs = model_ft.fc.in_features
+    #model_ft.fc = nn.Linear(num_ftrs, 2)
+    # new dense model
+    model_ft.fc = nn.Sequential(
+        # Note: Adaptive Concatenation generates 4096 features (both max & avg pooling)
+        #AdaptiveConcatPool2d(),
+        #nn.AdaptiveMaxPool2d(output_size=(1, 1)),
+        #Flatten(),
+        #nn.BatchNorm1D(2048, eps=1e-05, momentum=0.1, affine=True),
+        nn.Dropout(p=0.5),
+        nn.Linear(in_features=2048, out_features=512),
+        nn.ReLU(),
+        #nn.BatchNorm1D(512, eps=1e-05, momentum=0.1, affine=True),
+        nn.Dropout(p=0.5),
+        nn.Linear(in_features=512, out_features=2)
+        )
+    print(model_ft)
+    #print(summary(model_ft, (3, 224, 224)))
+
+    # Dataset Overview
+    print("\nSize Training dataset: %s" % dataset_sizes['train'])
+    print("Size Validation dataset: %s" % dataset_sizes['val'])
+
+    # Attach to device
+    model_ft = model_ft.to(device)
+
+    # Criterion
+    criterion = nn.CrossEntropyLoss()
+
+    # Observe that only parameters of final layer are being optimized as
+    # opoosed to before.
+
+    optimizer_ft = optim.SGD(model_ft.fc.parameters(), lr=lr1, momentum=0.9)
+
+    # Decay LR by a factor of 0.1 every 7 epochs
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+    # ----------------------
+    # Train and evaluate
+    print("\n")
+    print('-' * 20)
+    print("Transfer learning...")
+    model_ft = train_model(model_ft, dataloaders, dataset_sizes, criterion, optimizer_ft, exp_lr_scheduler, num_epochs=nb_epochs1)
+    # Save trained model
+    torch.save(model_ft.state_dict(),'pytorch_model.h5')
+    # ----------------------
+    # Evaluate on validation data
+    test_model(model_ft,dataloaders, class_names)
+
+
+    ######################################################################
+    # Transfer learning - step 2: Finetuning the convnet
+    # ----------------------
+    #
+
+    # Unfreeze layers
+    for param in model_ft.parameters():
+        param.requires_grad = True
+
+    # Observe that all parameters are being optimized
+    optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr2, momentum=0.9)
+
+    # Decay LR by a factor of 0.1 every 7 epochs
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+    # ----------------------
+    # Train and evaluate
+    print("\n")
+    print('-' * 20)
+    print("Fine tuning...")
+    model_ft = train_model(model_ft, dataloaders, dataset_sizes, criterion, optimizer_ft, exp_lr_scheduler, num_epochs=nb_epochs2)
+
+    # Save trained model
+    torch.save(model_ft.state_dict(),'pytorch_model.h5')
+
+    # ----------------------
+    # Evaluate on validation data
+    test_model(model_ft,dataloaders, class_names)
+
+
+    #visualize_model(model_ft, dataloaders, class_names)
+
+    plt.ioff()
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
