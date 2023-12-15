@@ -15,6 +15,7 @@ import time
 
 from sklearn.metrics import confusion_matrix
 from layers import *
+from network import *
 
 class Model(object):
 	def __init__(self):
@@ -25,33 +26,26 @@ class Model(object):
 		self.create_model()
 
 	def create_model(self):
+		
 		# Use ResNet50 model
-		self.model = models.resnet50(pretrained=True)
+		#self.model = models.resnet50(pretrained=True)
+		#networkA_res50 = models.resnet50(pretrained=True)
+		#networkB_res50 = models.resnet50(pretrained=True)
+		#networkA_res50_conv = MyNetworkA(networkA_res50)
+		#networkB_res50_conv = MyNetworkB(networkB_res50)
+		#self.model = MyEnsemble(networkA_res50_conv,networkB_res50_conv)
+		#print(self.model)
+
+		self.model = MyNetwork()
+		#print(self.model)
 
 		# Freeze layers
 		for param in self.model.parameters():
+			#print(param)
 			param.requires_grad = False
-
-		# ------------
-		# Update model
-		# Single linear features
-		num_ftrs = self.model.fc.in_features
-		#self.model.fc = nn.Linear(num_ftrs, 2)
-		# new dense model
-		self.model.fc = nn.Sequential(
-			# Note: Adaptive Concatenation generates 4096 features (both max & avg pooling)
-			#AdaptiveConcatPool2d(),
-			#nn.AdaptiveMaxPool2d(output_size=(1, 1)),
-			#Flatten(),
-			#nn.BatchNorm1D(2048, eps=1e-05, momentum=0.1, affine=True),
-			nn.Dropout(p=0.5),
-			nn.Linear(in_features=2048, out_features=512),
-			nn.ReLU(),
-			#nn.BatchNorm1D(512, eps=1e-05, momentum=0.1, affine=True),
-			nn.Dropout(p=0.5),
-			nn.Linear(in_features=512, out_features=2)
-		)
-		print(self.model)
+		# Unfreeze layers for classifier
+		for param in self.model.classifier.parameters():	
+			param.requires_grad = True
 		
 		# Attach to device
 		self.model = self.model.to(self.device)
@@ -63,7 +57,7 @@ class Model(object):
 
 		# Update optimizer and schredule based on transferLearningStep
 		if (TransferLearningStep == "Step1"):
-			optimizer = optim.SGD(self.model.fc.parameters(), lr=lr, momentum=0.9)
+			optimizer = optim.SGD(self.model.classifier.parameters(), lr=lr, momentum=0.9)
 
 			# Decay LR by a factor of 0.1 every 7 epochs
 			scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
@@ -111,7 +105,8 @@ class Model(object):
 					# forward
 					# track history if only in train
 					with torch.set_grad_enabled(phase == 'train'):
-						outputs = self.model(inputs)
+						# Provide two inputs to model
+						outputs = self.model(inputs, inputs)
 						_, preds = torch.max(outputs, 1)
 						loss = self.criterion(outputs, labels)
 
@@ -162,7 +157,7 @@ class Model(object):
 				inputs = inputs.to(self.device)
 				labels = labels.to(self.device)
 
-				outputs = self.model(inputs)
+				outputs = self.model(inputs, inputs)
 				_, preds = torch.max(outputs, 1)
 
 				for j in range(inputs.size()[0]):
@@ -192,7 +187,7 @@ class Model(object):
 				inputs = inputs.to(self.device)
 				labels = labels.to(self.device)
 
-				outputs = self.model(inputs)
+				outputs = self.model(inputs, inputs)
 				_, preds = torch.max(outputs, 1)
 				#print("\t Predictions: %s" % preds.data.cpu().numpy())
 				#print("\t Labels: %s" % labels.data.cpu().numpy())

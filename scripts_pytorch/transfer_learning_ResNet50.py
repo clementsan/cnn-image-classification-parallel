@@ -22,6 +22,7 @@ import copy
 ######################################################################
 from model import *
 from utils import *
+from network import *
 
 
 
@@ -37,12 +38,12 @@ sz = 224
 lr1 = 1e-3
 lr2 = 1e-3
 # Number Epochs
-nb_epochs1 = 25
-nb_epochs2 = 25
+nb_epochs1 = 1 #25
+nb_epochs2 = 1 #25
 
 # --------
 # Device for CUDA (pytorch 0.4.0)
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 def main():
@@ -88,6 +89,7 @@ def main():
 				  for x in ['train', 'val']}
 	dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
 	class_names = image_datasets['train'].classes
+	print(class_names)
 
 
 	# ----------------------
@@ -95,6 +97,9 @@ def main():
 
 	# Get a batch of training data
 	#inputs, classes = next(iter(dataloaders['train']))
+	#print(inputs)
+	#print(classes)
+	#print(inputs.type())
 
 	# Make a grid from batch
 	#out = torchvision.utils.make_grid(inputs)
@@ -113,42 +118,43 @@ def main():
 	# Create model
 	model_ft = Model()
 
+
 	# ----------------------
 	# Train and evaluate
 	print("\n")
 	print('-' * 20)
 	print("Transfer learning - Step1...")
-
+	
 	TransferLearningStep = "Step1"
 	model_ft.train_model(TransferLearningStep, dataloaders=dataloaders, lr=lr1, nb_epochs=nb_epochs1)
-
+	
 	# ----------------------
 	# Evaluate on validation data
 	model_ft.test_model(dataloaders, class_names)
-
-
+	
+	
 	######################################################################
 	# Transfer learning - step 2: Finetuning the convnet
 	# ----------------------
 	#
-
+	
 	# ----------------------
 	# Train and evaluate
 	print("\n")
 	print('-' * 20)
 	print("Fine tuning...")
-
+	
 	TransferLearningStep = "Step2"
 	model_ft.train_model(TransferLearningStep, dataloaders=dataloaders, lr=lr2, nb_epochs=nb_epochs2)
-
-
+	
+	
 	# ----------------------
 	# Evaluate on validation data
 	model_ft.test_model(dataloaders, class_names)
-
+	
 	# ----------------------
 	# Display predicted images
-	visualize_model(model_ft, dataloaders, class_names)
+	#visualize_model(model_ft, dataloaders, class_names)
 
 	plt.ioff()
 	plt.show()
