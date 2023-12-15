@@ -15,34 +15,6 @@ class MyData(Dataset):
 		labels_list = df['label'].tolist()
 		labels_list = [self.label_name.index(label) for label in labels_list]
 		num_file = df.shape[0]
-
-		# f = open(file_list, 'r')
-		# im1_list = []
-		# im2_list = []
-		# im3_list = []
-		# im4_list = []
-		# labels_list = []
-		
-		# num_file = 0
-
-
-		# for line in f:
-		# 	try:
-		# 		im1, im2, im3, im4, label = line.strip("\n").split(',')
-		# 	except ValueError: # Adhoc for test.                                 
-		# 		im1 = im2 = im3 = im4 = label = line.strip("\n")                                    
-			
-		# 	im1_list.append(im1)
-		# 	im2_list.append(im2)
-		# 	im3_list.append(im3)
-		# 	im4_list.append(im4)
-		# 	labels_list.append(self.label_name.index(label))
-
-
-		# 	num_file += 1 
-		# 	'''if num_file > 5:
-		# 		break;'''
-
 		
 		self.im1_list = im1_list
 		self.im2_list = im2_list
