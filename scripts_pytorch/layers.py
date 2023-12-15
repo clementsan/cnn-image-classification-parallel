@@ -17,7 +17,6 @@ class Lambda(nn.Module):
 #    def __init__(self): super().__init__()
 #    def forward(self, x): return x.view(x.size(0), -1)
 
-
 class Flatten(nn.Module):
 	def forward(self, input):
 		return input.view(input.size(0), -1)
