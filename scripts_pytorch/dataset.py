@@ -1,39 +1,47 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 from PIL import Image as PILimage
 from torch.utils.data import Dataset
-
+import pandas as pd
 
 class MyData(Dataset):
 	def __init__(self, file_list):
 		self.label_name = ['Class1', 'Class2', 'Class3', 'Class4']
 		
+		df = pd.read_csv(file_list, sep=',')
+		im1_list = df['10000x'].tolist()
+		im2_list = df['25000x'].tolist()
+		im3_list = df['50000x'].tolist()
+		im4_list = df['100000x'].tolist()
+		labels_list = df['label'].tolist()
+		labels_list = [self.label_name.index(label) for label in labels_list]
+		num_file = df.shape[0]
 
-		f = open(file_list, 'r')
-		im1_list = []
-		im2_list = []
-		im3_list = []
-		im4_list = []
-		labels_list = []
+		# f = open(file_list, 'r')
+		# im1_list = []
+		# im2_list = []
+		# im3_list = []
+		# im4_list = []
+		# labels_list = []
 		
-		num_file = 0
+		# num_file = 0
 
 
-		for line in f:
-			try:
-				im1, im2, im3, im4, label = line.strip("\n").split(',')
-			except ValueError: # Adhoc for test.                                 
-				im1 = im2 = im3 = im4 = label = line.strip("\n")                                    
+		# for line in f:
+		# 	try:
+		# 		im1, im2, im3, im4, label = line.strip("\n").split(',')
+		# 	except ValueError: # Adhoc for test.                                 
+		# 		im1 = im2 = im3 = im4 = label = line.strip("\n")                                    
 			
-			im1_list.append(im1)
-			im2_list.append(im2)
-			im3_list.append(im3)
-			im4_list.append(im4)
-			labels_list.append(self.label_name.index(label))
+		# 	im1_list.append(im1)
+		# 	im2_list.append(im2)
+		# 	im3_list.append(im3)
+		# 	im4_list.append(im4)
+		# 	labels_list.append(self.label_name.index(label))
 
 
-			num_file += 1 
-			'''if num_file > 5:
-				break;'''
+		# 	num_file += 1 
+		# 	'''if num_file > 5:
+		# 		break;'''
 
 		
 		self.im1_list = im1_list

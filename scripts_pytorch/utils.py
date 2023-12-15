@@ -10,11 +10,7 @@ def load_data(data_list, data_transforms):
 	datasets = []
 
 	for x in range(dataclass.num_file):		
-		#datasets.append((data_transforms(dataclass[x][0]), dataclass[x][1]))
-		
-			#datasets.append((data_transforms(dataclass[x][0]),data_transforms(dataclass[x][1]),\
-			#data_transforms(dataclass[x][2]),data_transforms(dataclass[x][3]),dataclass[x][4]))
-			datasets.append((data_transforms(dataclass[x][0]),data_transforms(dataclass[x][1]),\
+		datasets.append((data_transforms(dataclass[x][0]), data_transforms(dataclass[x][1]), \
 			 data_transforms(dataclass[x][2]),data_transforms(dataclass[x][3]),dataclass[x][4]))
 
 	return datasets

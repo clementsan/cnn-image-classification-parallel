@@ -31,7 +31,7 @@ from network import *
 # ---------
 path = '../scripts-preprocessing/'
 # Batch size
-bs = 32
+bs = 16
 # Image size
 sz = 224
 # Learning rate
@@ -99,7 +99,7 @@ def main():
 
 	for x in ['train', 'val']:
 		since = time.time()
-		data_list = os.path.join( path, (x + '_all.csv'))
+		data_list = os.path.join( path, (x + '_All.csv'))
 		print(data_list)
 		data = utils.load_data(data_list, data_transforms[x])
 
@@ -114,15 +114,15 @@ def main():
 	# Visualize input data
 
 	# Get a batch of training data
-	#inputs, classes = next(iter(dataloaders_dict['train']))
-	#print(inputs)
+	inputs1, inputs2, inputs3, inputs4, classes = next(iter(dataloaders_dict['train']))
+	#print(inputs1)
 	#print(classes)
-	#print(inputs.type())
+	#print(inputs1.type())
 
 	# Make a grid from batch
-	#out = torchvision.utils.make_grid(inputs)
+	out = torchvision.utils.make_grid(inputs1)
 
-	#utils.imshow(out, title=[class_names[x] for x in classes])
+	utils.imshow(out, title=[class_names[x] for x in classes])
 
 
 	######################################################################
