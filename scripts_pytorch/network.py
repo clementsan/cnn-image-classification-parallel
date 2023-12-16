@@ -141,3 +141,192 @@ class MyNetwork3(nn.Module):
 		out = self.fc1(ftrs)
 		
 		return out, ftrs
+
+
+# Network similar to fastAI (with shared weights)
+class MyNetworkCuong(nn.Module):
+	def __init__(self):
+		super(MyNetworkCuong, self).__init__()
+
+		num_ftrs = 2048*2
+		num_classes = 4
+		mymodel = models.resnet50(pretrained=True)
+		self.model_class1 = nn.Sequential(*list(mymodel.children())[:-2])
+
+		self.avg_pool = nn.AdaptiveAvgPool2d(1)
+		self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+		self.fc1 = nn.Linear(num_ftrs, num_ftrs // 4)				
+		
+		self.BN1 = torch.nn.BatchNorm1d(num_ftrs)
+		
+		self.fc = nn.Linear(num_ftrs, num_classes)
+		self.BN2 = torch.nn.BatchNorm1d(num_ftrs)
+		self.drop = torch.nn.Dropout(p=0.5)
+
+	def forward(self, x1, x2, x3, x4):	
+
+		avg_pool1 = self.avg_pool( self.model_class1(x1) )
+		max_pool1 = self.max_pool( self.model_class1(x1) )
+		ftrs1 = self.BN2(torch.squeeze(torch.cat((avg_pool1,max_pool1),1)))
+
+		avg_pool2 = self.avg_pool( self.model_class1(x2) )
+		max_pool2 = self.max_pool( self.model_class1(x2) )
+		ftrs2 = self.BN2(torch.squeeze(torch.cat((avg_pool2,max_pool2),1)))
+
+		avg_pool3 = self.avg_pool( self.model_class1(x3) )
+		max_pool3 = self.max_pool( self.model_class1(x3) )
+		ftrs3 = self.BN2(torch.squeeze(torch.cat((avg_pool3,max_pool3),1)))
+
+		avg_pool4 = self.avg_pool( self.model_class1(x4) )
+		max_pool4 = self.max_pool( self.model_class1(x4) )
+		ftrs4 = self.BN2(torch.squeeze(torch.cat((avg_pool4,max_pool4),1)))
+
+
+		ftrs1 = F.relu( (self.fc1( ftrs1 ) ))
+		ftrs2 = F.relu( (self.fc1( ftrs2 ) ))
+		ftrs3 = F.relu( (self.fc1( ftrs3 ) ))
+		ftrs4 = F.relu( (self.fc1( ftrs4 ) ))
+
+		# Ftrs size: 4096 after concatenation
+		ftrs = torch.cat( (torch.cat( (torch.cat( (ftrs1, ftrs2), 1), ftrs3), 1), ftrs4), 1)
+		out = self.drop( self.fc( self.BN1 (ftrs) ) )
+
+		return out, ftrs
+
+
+# Network similar to fastAI (with shared weights)
+class MyNetworkFastAI(nn.Module):
+	def __init__(self):
+		super(MyNetworkFastAI, self).__init__()
+
+		num_ftrs = 4096
+		num_classes = 4
+
+		mymodel = models.resnet50(pretrained=True)
+		self.model_class1 = nn.Sequential(*list(mymodel.children())[:-2])
+
+		self.avg_pool = nn.AdaptiveAvgPool2d(1)
+		self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+		# Change output to 512 features
+		self.fc1 = nn.Linear(num_ftrs, 512)
+		self.fc2 = nn.Linear(2048, 512)
+		self.fc = nn.Linear(512, num_classes)
+
+		self.BN1 = torch.nn.BatchNorm1d(num_ftrs)
+		self.BN2 = torch.nn.BatchNorm1d(2048)
+		self.BN3 = torch.nn.BatchNorm1d(512)
+		
+		self.drop1 = torch.nn.Dropout(p=0.25)
+		self.drop2 = torch.nn.Dropout(p=0.25)
+		self.drop3 = torch.nn.Dropout(p=0.5)
+
+	def forward(self, x1, x2, x3, x4):	
+
+		avg_pool1 = self.avg_pool( self.model_class1(x1) )
+		max_pool1 = self.max_pool( self.model_class1(x1) )
+		# Added dropout
+		ftrs1 = self.drop1(self.BN1(torch.squeeze(torch.cat((avg_pool1,max_pool1),1))))
+
+		avg_pool2 = self.avg_pool( self.model_class1(x2) )
+		max_pool2 = self.max_pool( self.model_class1(x2) )
+		ftrs2 = self.drop1(self.BN1(torch.squeeze(torch.cat((avg_pool2,max_pool2),1))))
+
+		avg_pool3 = self.avg_pool( self.model_class1(x3) )
+		max_pool3 = self.max_pool( self.model_class1(x3) )
+		ftrs3 = self.drop1(self.BN1(torch.squeeze(torch.cat((avg_pool3,max_pool3),1))))
+
+		avg_pool4 = self.avg_pool( self.model_class1(x4) )
+		max_pool4 = self.max_pool( self.model_class1(x4) )
+		ftrs4 = self.drop1(self.BN1(torch.squeeze(torch.cat((avg_pool4,max_pool4),1))))
+
+		ftrs1 = F.relu( (self.fc1( ftrs1 ) ))
+		ftrs2 = F.relu( (self.fc1( ftrs2 ) ))
+		ftrs3 = F.relu( (self.fc1( ftrs3 ) ))
+		ftrs4 = F.relu( (self.fc1( ftrs4 ) ))
+
+		# Concatenation: ftrs size = 4096
+		concat_ftrs = torch.cat( (torch.cat( (torch.cat( (ftrs1, ftrs2), 1), ftrs3), 1), ftrs4), 1)
+		concat_ftrs = self.drop2(self.BN2(concat_ftrs))
+
+		ftrs = self.drop3(self.BN3 (F.relu(self.fc2( concat_ftrs ))))
+
+		out = self.fc(ftrs)
+
+		return out, ftrs
+
+
+# Network similar to fastAI (with shared weights)
+class MyNetworkFastAI2(nn.Module):
+	def __init__(self):
+		super(MyNetworkFastAI2, self).__init__()
+
+		num_ftrs = 4096
+		num_classes = 4
+
+		mymodel = models.resnet50(pretrained=True)
+		self.model_class1 = nn.Sequential(*list(mymodel.children())[:-2])
+
+		self.avg_pool = nn.AdaptiveAvgPool2d(1)
+		self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+		# Change output to 512 features
+		# self.fc1 = nn.Linear(num_ftrs*4, 4096)
+		# self.fc2 = nn.Linear(4096, 512)
+		# self.fc = nn.Linear(512, num_classes)
+		
+		# self.BN1 = torch.nn.BatchNorm1d(num_ftrs*4)
+		# self.BN2 = torch.nn.BatchNorm1d(4096)
+		# self.BN3 = torch.nn.BatchNorm1d(512)
+		
+		# self.drop1 = torch.nn.Dropout(p=0.25)
+		# self.drop2 = torch.nn.Dropout(p=0.25)
+		# self.drop3 = torch.nn.Dropout(p=0.5)
+
+		self.BN1 = torch.nn.BatchNorm1d(num_ftrs*4)
+		self.drop1 = torch.nn.Dropout(p=0.25)
+		self.fc1 = nn.Linear(num_ftrs*4, 4096)
+		self.BN2 = torch.nn.BatchNorm1d(4096)
+		self.drop2 = torch.nn.Dropout(p=0.25)
+		self.fc2 = nn.Linear(4096, 512)
+		self.BN3 = torch.nn.BatchNorm1d(512)
+		self.drop3 = torch.nn.Dropout(p=0.5)
+		self.fc = nn.Linear(512, num_classes)
+
+
+	def forward(self, x1, x2, x3, x4):	
+
+		avg_pool1 = self.avg_pool( self.model_class1(x1) )
+		max_pool1 = self.max_pool( self.model_class1(x1) )
+		# Added dropout
+		ftrs1 = torch.squeeze(torch.cat((avg_pool1,max_pool1),1))
+
+		avg_pool2 = self.avg_pool( self.model_class1(x2) )
+		max_pool2 = self.max_pool( self.model_class1(x2) )
+		ftrs2 = torch.squeeze(torch.cat((avg_pool2,max_pool2),1))
+
+		avg_pool3 = self.avg_pool( self.model_class1(x3) )
+		max_pool3 = self.max_pool( self.model_class1(x3) )
+		ftrs3 = torch.squeeze(torch.cat((avg_pool3,max_pool3),1))
+
+		avg_pool4 = self.avg_pool( self.model_class1(x4) )
+		max_pool4 = self.max_pool( self.model_class1(x4) )
+		ftrs4 = torch.squeeze(torch.cat((avg_pool4,max_pool4),1))
+
+		# Concatenation: ftrs size = 4096 * 4
+		concat_ftrs = torch.cat( (torch.cat( (torch.cat( (ftrs1, ftrs2), 1), ftrs3), 1), ftrs4), 1)
+		x = self.BN1(concat_ftrs)
+		x = self.drop1(x)
+		x = self.fc1(x) # 4096 output features
+		x = F.relu(x)
+		x = self.BN2(x)
+		x = self.drop2(x)
+		x = self.fc2(x) # 512 output features
+		x = F.relu(x)
+		x = self.BN3(x)
+		ftrs = self.drop3(x)
+		out = self.fc(ftrs) # 4 output features
+
+		return out, ftrs
+
