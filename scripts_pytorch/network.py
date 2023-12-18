@@ -144,9 +144,9 @@ class MyNetwork3(nn.Module):
 
 
 # 
-class MyNetworkCuong(nn.Module):
+class NetworkCuong(nn.Module):
 	def __init__(self):
-		super(MyNetworkCuong, self).__init__()
+		super(NetworkCuong, self).__init__()
 
 		num_ftrs = 2048*2
 		num_classes = 4

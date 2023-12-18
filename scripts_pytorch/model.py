@@ -15,12 +15,16 @@ import time
 import matplotlib.pyplot as plt
 #from torchsummmary import summary
 
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
 from layers import *
 from network import *
 
 class Model(object):
-	def __init__(self):
+	def __init__(self, num_classes, num_img_split):
+		self.num_classes = num_classes	
+		self.num_img_split = num_img_split
+
 		# Criterion
 		self.criterion = nn.CrossEntropyLoss()
 		self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -164,9 +168,11 @@ class Model(object):
 					val_acc.append(epoch_acc)
 
 				# deep copy the model
-				if phase == 'val' and epoch_acc > best_acc:
+				if phase == 'val' and epoch_acc >= best_acc:
 					best_acc = epoch_acc
 					best_model_wts = copy.deepcopy(self.model.state_dict())
+					# Save trained model
+					torch.save(self.model.state_dict(),'pytorch_model.h5')
 
 			print()
 
@@ -227,7 +233,7 @@ class Model(object):
 		was_training = self.model.training
 		self.model.eval()
 		#self.model.load_state_dict(torch.load('pytorch_model.h5'))
-		self.model.eval()
+		#self.model.eval()
 		total_labels = []
 		total_preds = []
 		with torch.no_grad():
@@ -247,10 +253,100 @@ class Model(object):
 				total_preds.extend(preds.data.cpu().numpy())
 
 		print(class_names)
+
+		# Accuracy
+		Accuracy = accuracy_score(total_labels, total_preds)
+		print("Accuracy: %s" % Accuracy)
+
+		# Classification report
+		Report = classification_report(total_labels, total_preds, target_names=class_names,output_dict=True)
+		print("Report: %s" %Report)
+
+		# Confusion matrix
 		cm = confusion_matrix(total_labels,total_preds)
 		print(cm)
+
+		# Majority voting
+		majority_vote(total_preds,total_labels)
+
 
 		self.model.train(mode=was_training)
 
 
+
+
+	def majority_vote(self, preds, labels):
+
+		num_per_img = self.num_img_split
+		maj_vec = np.zeros((labels.shape[0]//num_per_img,))
+		maj_labels = np.copy(maj_vec)
+		
+		for i in range(0,labels.shape[0],num_per_img):
+			curr_mode,_ = scipy.stats.mode(preds[i:i+num_per_img])
+			
+			maj_vec[i//num_per_img] = curr_mode[0]
+			maj_labels[i//num_per_img] = labels[i]
+
+		acc = float(len(np.where(maj_vec == maj_labels)[0])) / len(maj_vec)
+		print('Majority vote Acc = {:.6f}'.format(acc))
+
+
+	def cov(self, attr, ftrs):
+		mu_attr = np.mean(attr)
+		mu_ftrs = np.mean(ftrs)
+
+		vec = ftrs - mu_ftrs
+		overall = 0.0
+		for i in range(len(attr)):
+			overall += np.sum((attr[i]-mu_attr) * vec)
+
+		cov = overall / (len(attr) * len(ftrs))
+
+		return cov
+
+
+	def save_img(self, files, preds):
+
+		p = preds.cpu().numpy()
+		for i in range(len(files)):
+			curr_name = os.getcwd() + '/predicted_img/' + files[i].split('/')[9][:-4] + '_pred.tif'
+			curr_img = p[i,...]			
+			#print(curr_img)
+			scipy.misc.imsave(curr_name, curr_img)
+
+
+	def plot_confusion_matrix(self, ma, classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues):
+		"""
+		This function prints and plots the confusion matrix.
+		Normalization can be applied by setting `normalize=True`.
+		"""
+		plt.figure()
+		if normalize:
+			ma = ma.astype('float') / ma.sum(axis=1)[:, np.newaxis]
+			print("Normalized confusion matrix")
+		else:
+			print('Confusion matrix, without normalization')
+		
+
+		plt.imshow(ma, interpolation='nearest', cmap=cmap)
+		plt.title(title)
+		plt.colorbar()
+		tick_marks = np.arange(len(classes))
+		plt.xticks(tick_marks, classes, rotation=45)
+		plt.yticks(tick_marks, classes)
+
+		fmt = '.2f' if normalize else 'd'
+		thresh = ma.max() / 2.
+		for i, j in itertools.product(range(ma.shape[0]), range(ma.shape[1])):
+			plt.text(j, i, format(ma[i, j], fmt),
+		             horizontalalignment="center",
+		             color="white" if ma[i, j] > thresh else "black")
+
+		plt.ylabel('True label')
+		plt.xlabel('Predicted label')
+		plt.tight_layout()
+		plt.savefig(os.getcwd() + '/' + title + '.tif')
 
