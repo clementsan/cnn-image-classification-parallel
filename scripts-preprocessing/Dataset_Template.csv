@@ -1,0 +1,5 @@
+10000x,25000x,50000x,100000x,label
+/path/Image0001_10000x_sample_1.tif,/path/Image0001_25000x_sample_1.tif,/path/Image0001_50000x_sample_1.tif,/path/Image0001_100000x_sample_1.tif,Class1
+/path/Image0001_10000x_sample_2.tif,/path/Image0001_25000x_sample_2.tif,/path/Image0001_50000x_sample_2.tif,/path/Image0001_100000x_sample_2.tif,Class1
+/path/Image0002_10000x_sample_1.tif,/path/Image0002_25000x_sample_1.tif,/path/Image0002_50000x_sample_1.tif,/path/Image0002_100000x_sample_1.tif,Class1
+/path/Image0002_10000x_sample_2.tif,/path/Image0002_25000x_sample_2.tif,/path/Image0002_50000x_sample_2.tif,/path/Image0002_100000x_sample_2.tif,Class1
