@@ -29,7 +29,7 @@ from network import *
 ######################################################################
 # Parameters
 # ---------
-path = '../CSV_InputFiles'
+path = '../script-preprocessing'
 # Batch size
 bs = 16
 # Image size
@@ -41,6 +41,11 @@ lr2 = 1e-5
 nb_epochs1 = 15 #25
 nb_epochs2 = 30 #25
 class_names = ['Class1', 'Class2', 'Class3', 'Class4']
+# Number of classes
+num_classes = 4
+# Number of samples / ROIs block (for splitting)
+num_img_split = 9
+
 
 # --------
 # Device for CUDA (pytorch 0.4.0)
@@ -78,20 +83,6 @@ def main():
 			normalize
 		]),
 	}
-
-
-	# ---------
-	# data_dir = path
-	# image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
-	# 										  data_transforms[x])
-	# 				  for x in ['train', 'val']}
-	# dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=bs,
-	# 											 shuffle=True, num_workers=4)
-	# 			  for x in ['train', 'val']}
-	# dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-	#class_names = image_datasets['train'].classes
-	#print(class_names)
-
 
 	# ---------
 	data_dict = {}
@@ -134,7 +125,7 @@ def main():
 
 	# ----------------------
 	# Create model
-	model_ft = Model()
+	model_ft = Model(num_classes,num_img_split)
 
 
 	# ----------------------
