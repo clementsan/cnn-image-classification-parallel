@@ -29,17 +29,17 @@ from network import *
 ######################################################################
 # Parameters
 # ---------
-path = '../scripts-preprocessing/'
+path = '../CSV_InputFiles'
 # Batch size
 bs = 16
 # Image size
 sz = 224
 # Learning rate
-lr1 = 1e-3
-lr2 = 1e-3
+lr1 = 1e-4
+lr2 = 1e-5
 # Number Epochs
-nb_epochs1 = 10 #25
-nb_epochs2 = 10 #25
+nb_epochs1 = 15 #25
+nb_epochs2 = 30 #25
 class_names = ['Class1', 'Class2', 'Class3', 'Class4']
 
 # --------
@@ -72,7 +72,7 @@ def main():
 			normalize
 		]),
 		'val': transforms.Compose([
-			transforms.Resize(256),
+			#transforms.Resize(256),
 			transforms.CenterCrop(sz),
 			transforms.ToTensor(),
 			normalize

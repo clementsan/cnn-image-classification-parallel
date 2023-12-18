@@ -143,7 +143,7 @@ class MyNetwork3(nn.Module):
 		return out, ftrs
 
 
-# Network similar to fastAI (with shared weights)
+# 
 class MyNetworkCuong(nn.Module):
 	def __init__(self):
 		super(MyNetworkCuong, self).__init__()
