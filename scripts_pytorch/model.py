@@ -79,11 +79,11 @@ class Model(object):
 			# 	print (name)
 			# 	param.requires_grad = True
 
-			#optimizer = optim.SGD(self.model.fc1.parameters(), lr=lr, momentum=0.9)
-			optimizer = optim.SGD([{'params': self.params_to_update}], lr=lr, momentum=0.9)
-
+			# optimizer = optim.SGD([{'params': self.params_to_update}], lr=lr, momentum=0.9)
+			optimizer = optim.AdamW([{'params': self.params_to_update}], lr=lr, betas=(0.9, 0.999), weight_decay=0.3)
+			
 			# Decay LR by a factor of 0.1 every 7 epochs
-			scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+			# scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
 		elif (TransferLearningStep == "Step2"):
 			# Unfreeze all layers
@@ -91,10 +91,11 @@ class Model(object):
 				param.requires_grad = True
 
 			# Observe that all parameters are being optimized
-			optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9)
-
+			# optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9)
+			optimizer = optim.AdamW(self.model.parameters(), lr=lr, betas=(0.9, 0.999), weight_decay=0.3)
+			
 			# Decay LR by a factor of 0.1 every 7 epochs
-			scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+			# scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
 		else:
 			print("ERROR transfer learning step")
