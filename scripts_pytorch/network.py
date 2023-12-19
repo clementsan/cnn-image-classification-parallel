@@ -12,8 +12,9 @@ from torchvision import datasets, models, transforms
 
 # Combined resnets with one fc layer
 class MyNetwork1(nn.Module):
-	def __init__(self):
+	def __init__(self, num_classes):
 		super(MyNetwork1, self).__init__()
+		self.num_classes = num_classes
 
 		# Warning: need to initialize separate network, to get proper parameters (gradient updates in model.py)
 		pretrained_network1 = models.resnet50(pretrained=True)
@@ -31,7 +32,7 @@ class MyNetwork1(nn.Module):
 		self.network3 = my_network3
 		self.network4 = my_network4
 		# Warning: need to define number of layers for number of features:  4 networks * 2048 featurs from ResNet50
-		self.fc1 = nn.Linear(8192, 4)
+		self.fc1 = nn.Linear(8192, self.num_classes)
 
 	def forward(self, w, x, y, z):
 		x1 = self.network1(w)
@@ -56,8 +57,9 @@ class MyNetwork1(nn.Module):
 
 # Combined resnets with multiple fc layers & dropout
 class MyNetwork2(nn.Module):
-	def __init__(self):
+	def __init__(self, num_classes):
 		super(MyNetwork2, self).__init__()
+		self.num_classes = num_classes
 
 		# Warning: need to initialize separate network, to get proper parameters (gradient updates in model.py)
 		self.network1 = models.resnet50(pretrained=True)
@@ -74,7 +76,7 @@ class MyNetwork2(nn.Module):
 		self.fc1_drop = nn.Dropout(p=0.5) # added this line
 		self.fc2 = nn.Linear(4000, 512)
 		self.fc2_drop = nn.Dropout(p=0.5) # added this line
-		self.fc3 = nn.Linear(512, 4)
+		self.fc3 = nn.Linear(512, self.num_classes)
 
 
 	def forward(self, w, x, y, z):
@@ -105,8 +107,9 @@ class MyNetwork2(nn.Module):
 
 # Network adapted from Cuong - combined resnet18
 class MyNetwork3(nn.Module):
-	def __init__(self):
+	def __init__(self, num_classes):
 		super(MyNetwork3, self).__init__()
+		self.num_classes = num_classes
 
 		self.model_class1 = models.resnet18(pretrained=True)
 		num_ftrs = self.model_class1.fc.in_features				
@@ -124,7 +127,7 @@ class MyNetwork3(nn.Module):
 		self.model_class4.fc = nn.Linear(num_ftrs, num_ftrs // 4)
 
 		
-		self.fc1 = nn.Linear(num_ftrs // 2, 4)
+		self.fc1 = nn.Linear(num_ftrs // 2, self.num_classes)
 
 	def forward(self, x1, x2, x3, x4):
 	#def forward(self, x3, x4):
@@ -145,11 +148,11 @@ class MyNetwork3(nn.Module):
 
 # 
 class NetworkCuong(nn.Module):
-	def __init__(self):
+	def __init__(self, num_classes):
 		super(NetworkCuong, self).__init__()
+		self.num_classes = num_classes
 
 		num_ftrs = 2048*2
-		num_classes = 4
 		mymodel = models.resnet50(pretrained=True)
 		self.model_class1 = nn.Sequential(*list(mymodel.children())[:-2])
 
@@ -160,7 +163,7 @@ class NetworkCuong(nn.Module):
 		
 		self.BN1 = torch.nn.BatchNorm1d(num_ftrs)
 		
-		self.fc = nn.Linear(num_ftrs, num_classes)
+		self.fc = nn.Linear(num_ftrs, self.num_classes)
 		self.BN2 = torch.nn.BatchNorm1d(num_ftrs)
 		self.drop = torch.nn.Dropout(p=0.5)
 
@@ -197,12 +200,12 @@ class NetworkCuong(nn.Module):
 
 # Network similar to fastAI (with shared weights)
 class MyNetworkFastAI(nn.Module):
-	def __init__(self):
+	def __init__(self, num_classes):
 		super(MyNetworkFastAI, self).__init__()
+		self.num_classes = num_classes
 
 		num_ftrs = 4096
-		num_classes = 4
-
+		
 		mymodel = models.resnet50(pretrained=True)
 		self.model_class1 = nn.Sequential(*list(mymodel.children())[:-2])
 
@@ -212,7 +215,7 @@ class MyNetworkFastAI(nn.Module):
 		# Change output to 512 features
 		self.fc1 = nn.Linear(num_ftrs, 512)
 		self.fc2 = nn.Linear(2048, 512)
-		self.fc = nn.Linear(512, num_classes)
+		self.fc = nn.Linear(512, self.num_classes)
 
 		self.BN1 = torch.nn.BatchNorm1d(num_ftrs)
 		self.BN2 = torch.nn.BatchNorm1d(2048)
@@ -259,12 +262,12 @@ class MyNetworkFastAI(nn.Module):
 
 # Network similar to fastAI (with shared weights)
 class MyNetworkFastAI2(nn.Module):
-	def __init__(self):
+	def __init__(self, num_classes):
 		super(MyNetworkFastAI2, self).__init__()
+		self.num_classes = num_classes
 
 		num_ftrs = 4096
-		num_classes = 4
-
+		
 		mymodel = models.resnet50(pretrained=True)
 		self.model_class1 = nn.Sequential(*list(mymodel.children())[:-2])
 
@@ -274,7 +277,7 @@ class MyNetworkFastAI2(nn.Module):
 		# Change output to 512 features
 		# self.fc1 = nn.Linear(num_ftrs*4, 4096)
 		# self.fc2 = nn.Linear(4096, 512)
-		# self.fc = nn.Linear(512, num_classes)
+		# self.fc = nn.Linear(512, self.num_classes)
 		
 		# self.BN1 = torch.nn.BatchNorm1d(num_ftrs*4)
 		# self.BN2 = torch.nn.BatchNorm1d(4096)
@@ -292,7 +295,7 @@ class MyNetworkFastAI2(nn.Module):
 		self.fc2 = nn.Linear(4096, 512)
 		self.BN3 = torch.nn.BatchNorm1d(512)
 		self.drop3 = torch.nn.Dropout(p=0.5)
-		self.fc = nn.Linear(512, num_classes)
+		self.fc = nn.Linear(512, self.num_classes)
 
 
 	def forward(self, x1, x2, x3, x4):	

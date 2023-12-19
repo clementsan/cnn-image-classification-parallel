@@ -35,9 +35,9 @@ class Model(object):
 		
 
 		# Combined resNets with one final layer
-		#self.model = MyNetwork1()
+		#self.model = MyNetwork1(self.num_classes)
 		# More advanced network (hidden layers and dropout)
-		self.model = MyNetworkFastAI2()
+		self.model = MyNetworkFastAI2(self.num_classes)
 		print(self.model)
 		#print(summary(self.model, (2,224,224)))
 		
